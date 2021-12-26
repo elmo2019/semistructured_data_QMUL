@@ -1,0 +1,1073 @@
+{ 
+    "op" : "command", 
+    "ns" : "fly.Airport", 
+    "command" : {
+        "aggregate" : "Airport", 
+        "pipeline" : [
+            {
+                "$lookup" : {
+                    "from" : "Flight", 
+                    "localField" : "id", 
+                    "foreignField" : "start_airport_id", 
+                    "as" : "flight_from"
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "Flight", 
+                    "localField" : "id", 
+                    "foreignField" : "destination_airport_id", 
+                    "as" : "flight_to"
+                }
+            }, 
+            {
+                "$project" : {
+                    "_id" : 0.0, 
+                    "stop_charge" : "1", 
+                    "charge1" : {
+                        "$reduce" : {
+                            "input" : {
+                                "$map" : {
+                                    "input" : "$flight_from", 
+                                    "as" : "ff", 
+                                    "in" : {
+                                        "$multiply" : [
+                                            {
+                                                "$divide" : [
+                                                    {
+                                                        "$subtract" : [
+                                                            {
+                                                                "$toDate" : "$$ff.departure_date"
+                                                            }, 
+                                                            {
+                                                                "$toDate" : "2021-11-01T"
+                                                            }
+                                                        ]
+                                                    }, 
+                                                    3600000.0
+                                                ]
+                                            }, 
+                                            "$stop_charge_rate"
+                                        ]
+                                    }
+                                }
+                            }, 
+                            "initialValue" : 0.0, 
+                            "in" : {
+                                "$add" : [
+                                    "$$value", 
+                                    "$$this"
+                                ]
+                            }
+                        }
+                    }, 
+                    "charge2" : {
+                        "$reduce" : {
+                            "input" : {
+                                "$map" : {
+                                    "input" : "$flight_to", 
+                                    "as" : "ft", 
+                                    "in" : {
+                                        "$multiply" : [
+                                            {
+                                                "$divide" : [
+                                                    {
+                                                        "$subtract" : [
+                                                            {
+                                                                "$toDate" : "$$ft.arrival_date"
+                                                            }, 
+                                                            {
+                                                                "$toDate" : "2021-11-01T"
+                                                            }
+                                                        ]
+                                                    }, 
+                                                    3600000.0
+                                                ]
+                                            }, 
+                                            "$stop_charge_rate"
+                                        ]
+                                    }
+                                }
+                            }, 
+                            "initialValue" : 0.0, 
+                            "in" : {
+                                "$add" : [
+                                    "$$value", 
+                                    "$$this"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }, 
+            {
+                "$group" : {
+                    "_id" : "$stop_charge", 
+                    "sum_charge1" : {
+                        "$sum" : "$charge1"
+                    }, 
+                    "sum_charge2" : {
+                        "$sum" : "$charge2"
+                    }
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(165), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(1), 
+    "queryHash" : "06E4134B", 
+    "planCacheKey" : "B1A95D42", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(22)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(22)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(161), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(1), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:07.488+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Trip", 
+    "command" : {
+        "aggregate" : "Trip", 
+        "pipeline" : [
+            {
+                "$unwind" : "$bookings"
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "Booking", 
+                    "localField" : "bookings", 
+                    "foreignField" : "id", 
+                    "as" : "used"
+                }
+            }, 
+            {
+                "$unwind" : "$used"
+            }, 
+            {
+                "$group" : {
+                    "_id" : "$id", 
+                    "moneySpent" : {
+                        "$sum" : "$used.cost"
+                    }
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(105), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(5), 
+    "queryHash" : "6DAB46EC", 
+    "planCacheKey" : "D23A0176", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(22)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(22)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(302), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:07.807+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Flight", 
+    "command" : {
+        "aggregate" : "Flight", 
+        "pipeline" : [
+            {
+                "$match" : {
+                    "id" : 1.0
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "Employee", 
+                    "localField" : "pilot_id", 
+                    "foreignField" : "id", 
+                    "as" : "pilot"
+                }
+            }, 
+            {
+                "$unwind" : "$pilot"
+            }, 
+            {
+                "$project" : {
+                    "_id" : 0.0, 
+                    "id" : 1.0, 
+                    "pilot_id" : 1.0, 
+                    "pilot_name" : "$pilot.name", 
+                    "pilot_address" : "$pilot.pilot_info.address", 
+                    "pilot_contact" : "$pilot.pilot_info.contact_details"
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(16), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(1), 
+    "queryHash" : "6DAB46EC", 
+    "planCacheKey" : "D23A0176", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(4)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(4)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(358), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:08.134+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Employee", 
+    "command" : {
+        "aggregate" : "Employee", 
+        "pipeline" : [
+            {
+                "$match" : {
+                    "post" : "pilot"
+                }
+            }, 
+            {
+                "$project" : {
+                    "_id" : 0.0, 
+                    "id" : 1.0, 
+                    "name" : 1.0, 
+                    "post" : 1.0, 
+                    "end_date" : "$pilot_info.employment_records.end_date", 
+                    "lastTestDate" : "$pilot_info.lastTestDate"
+                }
+            }, 
+            {
+                "$unwind" : "$end_date"
+            }, 
+            {
+                "$match" : {
+                    "end_date" : {
+                        "$gt" : "2021-11-08T"
+                    }, 
+                    "lastTestDate" : {
+                        "$gt" : "2021-05-09T"
+                    }
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(13), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(6), 
+    "queryHash" : "8FF50D94", 
+    "planCacheKey" : "A7DBB4F7", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(2)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(2)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(797), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:08.464+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Plane", 
+    "command" : {
+        "aggregate" : "Plane", 
+        "pipeline" : [
+            {
+                "$match" : {
+                    "status" : "working"
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(6), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(4), 
+    "queryHash" : "E6304EB6", 
+    "planCacheKey" : "B6975428", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(751), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:08.781+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "query", 
+    "ns" : "fly.Plane", 
+    "command" : {
+        "find" : "Plane", 
+        "filter" : {
+
+        }, 
+        "sort" : {
+            "service_date" : -1.0
+        }, 
+        "limit" : NumberInt(1), 
+        "batchSize" : NumberInt(50), 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(6), 
+    "hasSortStage" : true, 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(1), 
+    "queryHash" : "B23C53FE", 
+    "planCacheKey" : "BC85869E", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(261), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "execStats" : {
+        "stage" : "SORT", 
+        "nReturned" : NumberInt(1), 
+        "executionTimeMillisEstimate" : NumberInt(0), 
+        "works" : NumberInt(10), 
+        "advanced" : NumberInt(1), 
+        "needTime" : NumberInt(8), 
+        "needYield" : NumberInt(0), 
+        "saveState" : NumberInt(0), 
+        "restoreState" : NumberInt(0), 
+        "isEOF" : NumberInt(1), 
+        "sortPattern" : {
+            "service_date" : NumberInt(-1)
+        }, 
+        "memLimit" : NumberInt(104857600), 
+        "limitAmount" : NumberInt(1), 
+        "type" : "simple", 
+        "totalDataSizeSorted" : NumberInt(0), 
+        "usedDisk" : false, 
+        "inputStage" : {
+            "stage" : "COLLSCAN", 
+            "nReturned" : NumberInt(6), 
+            "executionTimeMillisEstimate" : NumberInt(0), 
+            "works" : NumberInt(8), 
+            "advanced" : NumberInt(6), 
+            "needTime" : NumberInt(1), 
+            "needYield" : NumberInt(0), 
+            "saveState" : NumberInt(0), 
+            "restoreState" : NumberInt(0), 
+            "isEOF" : NumberInt(1), 
+            "direction" : "forward", 
+            "docsExamined" : NumberInt(6)
+        }
+    }, 
+    "ts" : ISODate("2021-12-22T04:18:09.112+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Flight", 
+    "command" : {
+        "aggregate" : "Flight", 
+        "pipeline" : [
+            {
+                "$match" : {
+                    "length" : {
+                        "$gt" : 5000.0
+                    }
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(16), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(10), 
+    "queryHash" : "B7309FA8", 
+    "planCacheKey" : "2108AF66", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(2519), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:09.369+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Employee", 
+    "command" : {
+        "aggregate" : "Employee", 
+        "pipeline" : [
+            {
+                "$match" : {
+                    "id" : 1.0
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "Flight", 
+                    "localField" : "id", 
+                    "foreignField" : "pilot_id", 
+                    "as" : "pilot"
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "Flight", 
+                    "localField" : "id", 
+                    "foreignField" : "co-pilot_id", 
+                    "as" : "co-pilot"
+                }
+            }, 
+            {
+                "$project" : {
+                    "_id" : 0.0, 
+                    "name" : 1.0, 
+                    "hours_as_pilot" : {
+                        "$reduce" : {
+                            "input" : {
+                                "$map" : {
+                                    "input" : "$pilot", 
+                                    "as" : "p", 
+                                    "in" : {
+                                        "$divide" : [
+                                            {
+                                                "$subtract" : [
+                                                    {
+                                                        "$toDate" : "$$p.arrival_date"
+                                                    }, 
+                                                    {
+                                                        "$toDate" : "$$p.departure_date"
+                                                    }
+                                                ]
+                                            }, 
+                                            3600000.0
+                                        ]
+                                    }
+                                }
+                            }, 
+                            "initialValue" : 0.0, 
+                            "in" : {
+                                "$add" : [
+                                    "$$value", 
+                                    "$$this"
+                                ]
+                            }
+                        }
+                    }, 
+                    "hours_as_copilot" : {
+                        "$reduce" : {
+                            "input" : {
+                                "$map" : {
+                                    "input" : "$co-pilot", 
+                                    "as" : "cp", 
+                                    "in" : {
+                                        "$divide" : [
+                                            {
+                                                "$subtract" : [
+                                                    {
+                                                        "$toDate" : "$$cp.arrival_date"
+                                                    }, 
+                                                    {
+                                                        "$toDate" : "$$cp.departure_date"
+                                                    }
+                                                ]
+                                            }, 
+                                            3600000.0
+                                        ]
+                                    }
+                                }
+                            }, 
+                            "initialValue" : 0.0, 
+                            "in" : {
+                                "$add" : [
+                                    "$$value", 
+                                    "$$this"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(45), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(1), 
+    "queryHash" : "771F3F74", 
+    "planCacheKey" : "ED61201A", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(6)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(6)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(182), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:09.721+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Flight", 
+    "command" : {
+        "aggregate" : "Flight", 
+        "pipeline" : [
+            {
+                "$match" : {
+                    "start_airport_id" : 1.0, 
+                    "departure_date" : {
+                        "$gte" : "2021-11-01T00:00Z", 
+                        "$lt" : "2021-11-02T00:00Z"
+                    }
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(16), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(1), 
+    "queryHash" : "1669DA7E", 
+    "planCacheKey" : "E86B41E8", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(341), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:10.068+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "query", 
+    "ns" : "fly.Plane", 
+    "command" : {
+        "find" : "Plane", 
+        "filter" : {
+
+        }, 
+        "sort" : {
+            "flying_range" : -1.0
+        }, 
+        "batchSize" : NumberInt(50), 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(6), 
+    "hasSortStage" : true, 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(6), 
+    "queryHash" : "4C1F6CD5", 
+    "planCacheKey" : "BFF91D6D", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(1081), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "execStats" : {
+        "stage" : "SORT", 
+        "nReturned" : NumberInt(6), 
+        "executionTimeMillisEstimate" : NumberInt(0), 
+        "works" : NumberInt(15), 
+        "advanced" : NumberInt(6), 
+        "needTime" : NumberInt(8), 
+        "needYield" : NumberInt(0), 
+        "saveState" : NumberInt(0), 
+        "restoreState" : NumberInt(0), 
+        "isEOF" : NumberInt(1), 
+        "sortPattern" : {
+            "flying_range" : NumberInt(-1)
+        }, 
+        "memLimit" : NumberInt(104857600), 
+        "type" : "simple", 
+        "totalDataSizeSorted" : NumberInt(1157), 
+        "usedDisk" : false, 
+        "inputStage" : {
+            "stage" : "COLLSCAN", 
+            "nReturned" : NumberInt(6), 
+            "executionTimeMillisEstimate" : NumberInt(0), 
+            "works" : NumberInt(8), 
+            "advanced" : NumberInt(6), 
+            "needTime" : NumberInt(1), 
+            "needYield" : NumberInt(0), 
+            "saveState" : NumberInt(0), 
+            "restoreState" : NumberInt(0), 
+            "isEOF" : NumberInt(1), 
+            "direction" : "forward", 
+            "docsExamined" : NumberInt(6)
+        }
+    }, 
+    "ts" : ISODate("2021-12-22T04:18:10.428+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "query", 
+    "ns" : "fly.Plane", 
+    "command" : {
+        "find" : "Plane", 
+        "filter" : {
+
+        }, 
+        "sort" : {
+            "seat" : 1.0
+        }, 
+        "projection" : {
+            "_id" : 0.0, 
+            "model" : 1.0, 
+            "seat" : 1.0
+        }, 
+        "limit" : NumberInt(1), 
+        "batchSize" : NumberInt(50), 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(6), 
+    "hasSortStage" : true, 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(1), 
+    "queryHash" : "78C0238D", 
+    "planCacheKey" : "4DC0B5AF", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(1)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(143), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "execStats" : {
+        "stage" : "PROJECTION_SIMPLE", 
+        "nReturned" : NumberInt(1), 
+        "executionTimeMillisEstimate" : NumberInt(0), 
+        "works" : NumberInt(10), 
+        "advanced" : NumberInt(1), 
+        "needTime" : NumberInt(8), 
+        "needYield" : NumberInt(0), 
+        "saveState" : NumberInt(0), 
+        "restoreState" : NumberInt(0), 
+        "isEOF" : NumberInt(1), 
+        "transformBy" : {
+
+        }, 
+        "inputStage" : {
+            "stage" : "SORT", 
+            "nReturned" : NumberInt(1), 
+            "executionTimeMillisEstimate" : NumberInt(0), 
+            "works" : NumberInt(10), 
+            "advanced" : NumberInt(1), 
+            "needTime" : NumberInt(8), 
+            "needYield" : NumberInt(0), 
+            "saveState" : NumberInt(0), 
+            "restoreState" : NumberInt(0), 
+            "isEOF" : NumberInt(1), 
+            "sortPattern" : {
+                "seat" : NumberInt(1)
+            }, 
+            "memLimit" : NumberInt(104857600), 
+            "limitAmount" : NumberInt(1), 
+            "type" : "simple", 
+            "totalDataSizeSorted" : NumberInt(0), 
+            "usedDisk" : false, 
+            "inputStage" : {
+                "stage" : "COLLSCAN", 
+                "nReturned" : NumberInt(6), 
+                "executionTimeMillisEstimate" : NumberInt(0), 
+                "works" : NumberInt(8), 
+                "advanced" : NumberInt(6), 
+                "needTime" : NumberInt(1), 
+                "needYield" : NumberInt(0), 
+                "saveState" : NumberInt(0), 
+                "restoreState" : NumberInt(0), 
+                "isEOF" : NumberInt(1), 
+                "direction" : "forward", 
+                "docsExamined" : NumberInt(6)
+            }
+        }
+    }, 
+    "ts" : ISODate("2021-12-22T04:18:10.696+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+},
+{ 
+    "op" : "command", 
+    "ns" : "fly.Trip", 
+    "command" : {
+        "aggregate" : "Trip", 
+        "pipeline" : [
+            {
+                "$match" : {
+                    "booker_name" : "Paul Pogba"
+                }
+            }, 
+            {
+                "$lookup" : {
+                    "from" : "Booking", 
+                    "localField" : "bookings", 
+                    "foreignField" : "id", 
+                    "as" : "totalcost"
+                }
+            }, 
+            {
+                "$project" : {
+                    "_id" : 0.0, 
+                    "booker_name" : 1.0, 
+                    "totalcost" : {
+                        "$sum" : "$totalcost.cost"
+                    }
+                }
+            }
+        ], 
+        "cursor" : {
+
+        }, 
+        "$db" : "fly", 
+        "lsid" : {
+            "id" : UUID("d6c98c71-97a4-47c9-88b7-b9c08990323b")
+        }
+    }, 
+    "keysExamined" : NumberInt(0), 
+    "docsExamined" : NumberInt(15), 
+    "cursorExhausted" : true, 
+    "numYield" : NumberInt(0), 
+    "nreturned" : NumberInt(1), 
+    "queryHash" : "BB8A77BA", 
+    "planCacheKey" : "BF0C1C1B", 
+    "locks" : {
+        "Global" : {
+            "acquireCount" : {
+                "r" : NumberLong(4)
+            }
+        }, 
+        "Mutex" : {
+            "acquireCount" : {
+                "r" : NumberLong(4)
+            }
+        }
+    }, 
+    "flowControl" : {
+
+    }, 
+    "responseLength" : NumberInt(152), 
+    "protocol" : "op_msg", 
+    "millis" : NumberInt(0), 
+    "planSummary" : "COLLSCAN", 
+    "ts" : ISODate("2021-12-22T04:18:10.960+0000"), 
+    "client" : "127.0.0.1", 
+    "appName" : "Studio 3T", 
+    "allUsers" : [
+        {
+            "user" : "boss", 
+            "db" : "admin"
+        }
+    ], 
+    "user" : "boss@admin"
+}
